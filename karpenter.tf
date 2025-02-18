@@ -19,6 +19,7 @@ spec:
     securityGroupSelector:
       kubernetes.io/cluster/${var.name}: owned
   ttlSecondsAfterEmpty: 30
+    taints: []
 YAML
 
   depends_on = [

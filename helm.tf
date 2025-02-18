@@ -38,20 +38,20 @@ resource "helm_release" "aws_load_balancer_controller" {
   }
 
     # Toleration 추가
-  set {
-    name  = "tolerations[0].key"
-    value = "CriticalAddonsOnly"
-  }
+#  set {
+#    name  = "tolerations[0].key"
+#    value = "CriticalAddonsOnly"
+#  }
 
-  set {
-    name  = "tolerations[0].operator"
-    value = "Exists"
-  }
+#  set {
+#    name  = "tolerations[0].operator"
+#    value = "Exists"
+#  }
 
-  set {
-    name  = "tolerations[0].effect"
-    value = "NoSchedule"
-  }
+#  set {
+#    name  = "tolerations[0].effect"
+#    value = "NoSchedule"
+#  }
 
 }
 
@@ -107,3 +107,30 @@ resource "helm_release" "karpenter" {
     value = "NoSchedule"
   }
 }
+
+
+# Prometheus 설치
+resource "helm_release" "prometheus" {
+  name       = "prometheus"
+  chart      = "https://github.com/prometheus-community/helm-charts/releases/download/kube-prometheus-stack-25.0.0/kube-prometheus-stack-25.0.0.tgz"
+  namespace  = "monitoring"
+  version    = "25.0.0"  # 원하는 Prometheus Helm chart 버전을 설정하세요.
+
+  values = [
+    <<-EOT
+    tolerations:
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+        effect: "NoSchedule"
+    podSecurityPolicy:
+      enabled: false  # PodSecurityPolicy 비활성화
+    grafana:
+      enabled: true
+      adminPassword: "admin159!!"  # Grafana 관리자 비밀번호 설정
+      ingress:
+        enabled: true
+        host: "cgv.grafana"  # Grafana를 접속할 도메인 주소 설정
+    EOT
+  ]
+}
+
