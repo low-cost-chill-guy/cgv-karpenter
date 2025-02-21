@@ -4,10 +4,16 @@ resource "aws_subnet" "eksnet_bastion" {
   cidr_block = "10.0.${count.index}.0/24"
   map_public_ip_on_launch = true
   availability_zone       = "${var.region}${count.index == 0 ? "a" : "c"}"
-
+  
+  
   tags = {
-    Name = "${var.name}-pub-${count.index == 0 ? "a" : "c"}"
+     Name = "public-subnet"
+    "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
+#  tags = {
+#    Name = "${var.name}-pub-${count.index == 0 ? "a" : "c"}"
+#  }
 }
 
 resource "aws_subnet" "eksnet_ma" {

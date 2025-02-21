@@ -19,11 +19,11 @@ resource "aws_eks_node_group" "core_nodes" {
   }
 
   # 시스템 워크로드 전용 노드로 지정
-  taint {
-    key    = "CriticalAddonsOnly"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }
+#  taint {
+#    key    = "CriticalAddonsOnly"
+#    value  = "true"
+#    effect = "NO_SCHEDULE"
+#  }
 
   labels = {
     role = "core"

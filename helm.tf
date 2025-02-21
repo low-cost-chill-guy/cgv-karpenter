@@ -91,46 +91,60 @@ resource "helm_release" "karpenter" {
     value = aws_sqs_queue.karpenter.name
   }
 
-    # Toleration 추가
-  set {
-    name  = "tolerations[0].key"
-    value = "CriticalAddonsOnly"
-  }
+   # Toleration 추가
+#  set {
+#    name  = "tolerations[0].key"
+#    value = "CriticalAddonsOnly"
+#  }
 
-  set {
-    name  = "tolerations[0].operator"
-    value = "Exists"
-  }
+# set {
+#    name  = "tolerations[0].operator"
+#    value = "Exists"
+#  }
 
-  set {
-    name  = "tolerations[0].effect"
-    value = "NoSchedule"
-  }
+#  set {
+#    name  = "tolerations[0].effect"
+#    value = "NoSchedule"
+#  }
 }
 
 
 # Prometheus 설치
-resource "helm_release" "prometheus" {
-  name       = "prometheus"
-  chart      = "https://github.com/prometheus-community/helm-charts/releases/download/kube-prometheus-stack-25.0.0/kube-prometheus-stack-25.0.0.tgz"
-  namespace  = "monitoring"
-  version    = "25.0.0"  # 원하는 Prometheus Helm chart 버전을 설정하세요.
-
-  values = [
-    <<-EOT
-    tolerations:
-      - key: "CriticalAddonsOnly"
-        operator: "Exists"
-        effect: "NoSchedule"
-    podSecurityPolicy:
-      enabled: false  # PodSecurityPolicy 비활성화
-    grafana:
-      enabled: true
-      adminPassword: "admin159!!"  # Grafana 관리자 비밀번호 설정
-      ingress:
-        enabled: true
-        host: "cgv.grafana"  # Grafana를 접속할 도메인 주소 설정
-    EOT
-  ]
+resource "helm_release" "prometheus"{
+  depends_on = [aws_eks_cluster.main, module.addon-aws-ebs-csi-driver, aws_eks_node_group.core_nodes]
+  repository = "https://prometheus-community.github.io/helm-charts"
+  name = "practice-prometheus" #release name
+  chart = "prometheus" # chart name
+  namespace = "cgv-monitoring"
+  #create_namespace = true
+  set {
+    name = "server.persistentVolume.storageClass"
+    value = "gp2"
+  }
+  set {
+    name  = "alertmanager.persistence.storageClass"
+    value = "gp2"
+  }
 }
 
+# grafana 
+resource "helm_release" "grafana"{
+  depends_on = [aws_eks_cluster.main, module.addon-aws-ebs-csi-driver]
+  repository = "https://grafana.github.io/helm-charts"
+  name = "practice-grafana"
+  chart = "grafana"
+  namespace = "cgv-monitoring"
+  #create_namespace = true
+   set {
+    name  = "adminPassword"
+    value = "admin"
+  }
+  set {
+    name  = "persistence.enabled"
+    value = "true"
+  }
+  set {
+    name  = "persistence.storageClassName"
+    value = "gp2"
+  }
+}

@@ -41,6 +41,43 @@ resource "aws_iam_role" "eks_noderole" {
   })
 }
 
+#eks cluster
+resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
+  role       = aws_iam_role.eks_cluster_role.name  # The IAM role for the EKS cluster
+  policy_arn = aws_iam_policy.eks_cluster_policy.arn # The policy you want to attach
+}
+
+resource "aws_iam_role" "eks_cluster_role" {
+  name = "eks-cluster-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "eks.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_policy" "eks_cluster_policy" {
+  name = "eks-cluster-policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      # Add the necessary permissions for your EKS cluster
+      {
+        Action   = "*" # Replace with the actual permissions needed
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
+}
+
 # EKS 노드 역할에 정책 첨부
 resource "aws_iam_role_policy_attachment" "eks-AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
@@ -73,10 +110,11 @@ resource "aws_iam_role_policy" "eks_node_policy" {
       {
         Effect   = "Allow"
         Action   = [
-          "ec2:RunInstances",
-          "ec2:DescribeInstances",
-          "ec2:CreateLaunchTemplate",
-          "ec2:DescribeLaunchTemplates"
+          #"ec2:RunInstances",
+          #"ec2:DescribeInstances",
+          #"ec2:CreateLaunchTemplate",
+          #"ec2:DescribeLaunchTemplates",
+          "ec2:*"
         ]
         Resource = "*"
       },
@@ -190,8 +228,66 @@ resource "aws_iam_role_policy_attachment" "karpenter_node_ecr" {
 }
 
 # EKS 클러스터 역할에 정책 첨부
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks_clurole.name
+
+resource "aws_iam_role" "ebs_csi_driver_role" {
+  name = "ebs-csi-driver-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
+        Principal = {
+          Federated = "arn:aws:iam::277707137172:oidc-provider/oidc.eks.ap-northeast-2.amazonaws.com/id/F5BF774DED104B2074369F51F7B07535"
+        }
+        Condition = {
+          StringEquals = {
+            "oidc.eks.ap-northeast-2.amazonaws.com/id/F5BF774DED104B2074369F51F7B07535:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+          }
+        }
+      }
+    ]
+  })
 }
 
+resource "aws_iam_policy" "ebs_csi_driver_policy" {
+  name = "ebs-csi-driver-policy"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ebs:*" # Be as specific as possible in production
+        ],
+        Effect = "Allow",
+        Resource = "*"
+      },
+       {
+        Action = [
+          "ec2:DescribeVolumes",
+          "ec2:DescribeSnapshots",
+          "ec2:DescribeTags",
+          "ec2:CreateVolume"
+        ],
+        Effect = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
+  policy_arn = aws_iam_policy.ebs_csi_driver_policy.arn
+  role       = aws_iam_role.ebs_csi_driver_role.name
+}
+
+resource "kubernetes_service_account" "ebs_csi_controller" {
+  metadata {
+    name      = "ebs-csi-controller-sa"
+    namespace = "kube-system"
+    annotations = {
+      "eks.amazonaws.com/role-arn" = aws_iam_role.ebs_csi_driver_role.arn
+    }
+  }
+}
