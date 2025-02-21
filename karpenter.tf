@@ -24,7 +24,7 @@ resource "kubectl_manifest" "karpenter_provisioner" {
       ]
       limits = {
         resources = {
-          cpu    = "1000" # 숫자 값은 따옴표로 묶어줍니다.
+          cpu    = "4000" # 숫자 값은 따옴표로 묶어줍니다.
           memory = "1000Gi"
         }
       }

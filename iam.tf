@@ -153,7 +153,7 @@ resource "aws_iam_role_policy" "karpenter_controller" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+ destroying    Statement = [
       {
         Effect = "Allow"
         Action = [

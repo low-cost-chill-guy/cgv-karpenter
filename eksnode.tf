@@ -1,7 +1,8 @@
 resource "aws_eks_node_group" "core_nodes" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.name}-core-nodes"
-  node_role_arn   = aws_iam_role.eks_noderole.arn
+#  node_role_arn   = aws_iam_role.eks_noderole.arn
+  node_role_arn   = aws_iam_role.karpenter_node.arn
   subnet_ids      = aws_subnet.eksnet_work[*].id  # 프라이빗 서브넷 사용
 
   instance_types  = ["t3.large"]  # 시스템 워크로드를 위한 충분한 리소스
